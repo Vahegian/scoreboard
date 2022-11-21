@@ -1,0 +1,88 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+jobs:
+  fmt:
+    name: fmt
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Check formatting with gofmt
+        run: |
+          nonformatted="$(gofmt -l . 2>&1)"
+          [ -z "$nonformatted" ] && exit 0
+          echo "Following files are not properly formatted:"
+          echo "$nonformatted"
+          exit 1
+
+  create-release:
+    name: create-release
+    needs: fmt
+    runs-on: ubuntu-20.04
+    outputs:
+      upload_url: ${{ steps.create-release.outputs.upload_url }}
+    steps:
+      - name: Create release
+        uses: actions/create-release@v1
+        id: create-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v0.1.${{ github.run_number }}
+          release_name: Release v0.1.${{ github.run_number }}
+
+  build-release:
+    name: build-release
+
+    strategy:
+      matrix:
+        config:
+          - os: ubuntu-20.04
+          - os: macos-11
+          - os: windows-2022
+
+    runs-on: ${{ matrix.config.os }}
+    needs: create-release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+      
+      - name: Build Linux
+        if: matrix.config.os != 'windows-2022'
+        run: go build -o scoreboard
+
+      - name: Build Win
+        if: matrix.config.os == 'windows-2022'
+        run: go build -o scoreboard
+
+      - name: Upload release
+        if: matrix.config.os != 'windows-2022'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./scoreboard
+          asset_name: scoreboard_${{ matrix.config.os }}
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows release
+        if: matrix.config.os == 'windows-2022'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./scoreboard.exe
+          asset_name: scoreboard.exe
+          asset_content_type: application/octet-stream      
+
