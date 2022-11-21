@@ -7,6 +7,8 @@
 ### Demo Mode 
     ./scoreBoard_<version> demo
 
+If not executing run ```chmod +x ./scoreBoard_<version>```
+
 ## Build locally
     go build -o scoreboard
     
