@@ -131,16 +131,66 @@ func displaySummary(sb *ScoreBoard) {
 
 }
 
+func interactive(sb *ScoreBoard) {
+	var cliOption uint64
+	fmt.Print("\nSelect Option\n\t1 to Start Match\n\t2 to Finish Match\n\t3 to Update Score\n(1/2/3):")
+	fmt.Scanln(&cliOption)
+	if cliOption == 0 || cliOption > 3 {
+		fmt.Println("Invalid Option")
+		return
+	}
+
+	if cliOption == 1 {
+		var home string
+		var away string
+		fmt.Print("Home Team >")
+		fmt.Scanln(&home)
+		fmt.Print("Away Team >")
+		fmt.Scanln(&away)
+		id := sb.StartGame(home, away)
+		if id != 0 {
+			displaySummary(sb)
+		}
+		interactive(sb)
+	}
+
+	if cliOption == 2 {
+		var id uint64
+		fmt.Print("Match id >")
+		fmt.Scanln(&id)
+		sb.FinishGame(id)
+		displaySummary(sb)
+		interactive(sb)
+	}
+
+	if cliOption == 3 {
+		var id uint64
+		var home uint64
+		var away uint64
+		fmt.Print("Match id >")
+		fmt.Scanln(&id)
+		fmt.Print("Home Team Score >")
+		fmt.Scanln(&home)
+		fmt.Print("Away Team Score >")
+		fmt.Scanln(&away)
+		sb.UpdateScore(id, home, away)
+		displaySummary(sb)
+		interactive(sb)
+	}
+}
+
 func main() {
 	var sb *ScoreBoard = &ScoreBoard{board: make(map[uint64]BoardEntry)}
-
-	preProcessData()
-	go playDemo(sb)
-	for {
-		time.Sleep(time.Second)
-		displaySummary(sb)
-		if len(sb.board) == 0 {
-			return
+	if len(os.Args) == 2 && os.Args[1] == "demo" {
+		preProcessData()
+		go playDemo(sb)
+		for {
+			time.Sleep(time.Second)
+			displaySummary(sb)
+			if len(sb.board) == 0 {
+				return
+			}
 		}
 	}
+	interactive(sb)
 }
